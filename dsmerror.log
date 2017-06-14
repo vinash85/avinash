@@ -1,0 +1,6 @@
+07/31/14   09:57:14 ANS0361I DIAG: dlopen() of /opt/tivoli/tsm/client/ba/bin/plugins/libPiNAS.so failed.
+07/31/14   09:57:14 ANS0361I DIAG: ld.so.1: dsmc: fatal: libApiDS.so: open failed: No such file or directory.
+07/31/14   09:57:14 ANS0361I DIAG: dlopen() of /opt/tivoli/tsm/client/ba/bin/plugins/libPiIMG.so failed.
+07/31/14   09:57:14 ANS0361I DIAG: ld.so.1: dsmc: fatal: libApiDS.so: open failed: No such file or directory.
+07/31/14   09:57:31 ANS1082E Invalid destination file specification '/volumes/zvol00/cbcb/lab/sridhar/Avinash/spr13/cardio/lasso/src/avinash/restore' entered
+07/31/14   10:28:39 ANS1141W Unknown command - exit
