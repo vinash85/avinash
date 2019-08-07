@@ -12,9 +12,7 @@
 #'
 #' @examples
 calc.cor = function(x, y, method = "spearman", use = "pairwise.complete.obs"){
-  op <- options(warn = (-1)) 
-  h = cor(x, y, method = method, use = use)
-  options(op) # reset the default value
+  h=suppressWarnings(cor(x, y, method = method, use = use))
   aa = (!is.na(x)) + 0
   bb = (!is.na(y)) + 0
   npair = t(aa) %*% bb
