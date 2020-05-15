@@ -7,6 +7,7 @@ Author: Who wrote it
 Maintainer: Who to complain to <yourfault@somewhere.net>
 Description: More about what it does (maybe more than one line)
 License: What Licence is it under ?
-Depends: Rcpp (>= 0.10.6)
-Depends: data.table (>= 1.8.8)
+Depends: data.table (>= 1.8.8), Rcpp (>= 0.10.6)
 LinkingTo: Rcpp
+Imports: ggplot2, scales
+RoxygenNote: 6.1.1

@@ -169,3 +169,39 @@ sample.distribution <- function(target, size, prob=seq(0,1,.05))
   }
   inx
 }
+
+ensembl2hgnc = function(){
+# library(biomaRt)
+ensembl <- biomaRt::useMart("ensembl", dataset= "hsapiens_gene_ensembl")
+dt1 = biomaRt::getBM(attributes = c( "hgnc_symbol", "ensembl_gene_id"), mart=ensembl)
+dt1= data.table(dt1)
+setkey(dt1,ensembl_gene_id)
+dt1
+}
+# 
+# enterz2hgnc = function(){
+# library(org.Hs.eg.db)
+# x <- org.Hs.egREFSEQ2EG
+# mapped_genes <- mappedkeys(x)
+# xx <- as.list(x[mapped_genes])
+# xx 
+# }
+detachAllPackages <- function() {
+    basic.packages.blank <- c(    
+        "stats",    
+        "graphics",    
+        "grDevices",    
+        "utils",   
+        "datasets",  
+        "methods",    
+        "base"    
+    )    
+    basic.packages <- paste("package:", basic.packages.blank, sep = "")   
+    package.list <- search()[ifelse(unlist(gregexpr("package:", search())) == 1, TRUE, FALSE)]   
+    package.list <- setdiff(package.list, basic.packages)   
+    if (length(package.list) > 0) {   
+        for (package in package.list) {   
+            detach(package, character.only = TRUE)   
+        }   
+    }    
+}

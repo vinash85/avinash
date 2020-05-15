@@ -220,34 +220,47 @@ match.expression.distribution.combat = function(exp, ref.exp, num.samp.thr=2){
     new.exp = inp.dt[,seq(nrow(exp))]
     t(new.exp)
 }
-
-write.dataset = function(output.dir,dataset, ref.dir =NULL, samples.names = NULL) {
-	dir.create(output.dir)
-	if(!is.null(ref.dir)){
-		list.of.files <- c( 
-			list.files(ref.dir, "datasets_*list.txt$", full.names=T), 
-			list.files(ref.dir, "datasets_tsne_list.txt$", full.names=T), 
-			list.files(ref.dir, "params.json$",full.names=T) 
-			)
-		file.copy(list.of.files, output.dir)
-	}
-	if(!is.null(samples.names)){
-		write.table(file=paste0(output.dir, "/samples.names.txt"), x = samples.names,
-		row.names = F, col.names =T,  sep="\t", quote=F )
-
-	}
-	write.table(file=paste0(output.dir, "/dataset.txt"),x = dataset,
-		row.names = F, col.names =T,  sep="\t", quote=F )
-	rand_inx = sample(nrow(dataset))
-	dataset_shuffle = dataset[rand_inx,]
-	train.inx = 1:ceiling(.85 * nrow(dataset_shuffle))
-	val.inx = ceiling(.85 * nrow(dataset_shuffle)):nrow(dataset_shuffle)
-	write.table(file=paste0(output.dir, "/dataset_train.txt"),x = dataset_shuffle[train.inx,],
-		row.names = F, col.names =T,  sep="\t", quote=F )
-	write.table(file=paste0(output.dir, "/dataset_val.txt"),x = dataset_shuffle[val.inx,],
-		row.names = F, col.names =T,  sep="\t", quote=F )
+#' Title
+#'
+#' @param output.dir 
+#' @param sample.name 
+#' @param dataset 
+#' @param use.sample  NULL or vector to divide the sample. For example patient.name so that tranining and test are independent.
+#' @param write.full.dataset 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+write.dataset = function(output.dir, sample.name, dataset, use.sample=NULL, write.full.dataset=T, frac = 0.85) {
+    dir.create(output.dir)
+    write.table(file=paste0(output.dir, "/samples_name.txt"),x = sample.name,
+                row.names = F, col.names =T,  sep="\t", quote=F )
+    
+    if(write.full.dataset)
+        write.table(file=paste0(output.dir, "/dataset.txt"),x = dataset,
+                    row.names = F, col.names =T,  sep="\t", quote=F )
+    if(any(!is.null(use.sample))){
+        sample.name = use.sample 
+        rand_inx = sample(unique(sample.name))
+        train.sample = rand_inx[1:ceiling(frac * length(rand_inx))]
+        val.sample = rand_inx[ceiling(frac * length(rand_inx)+1):length(rand_inx)]
+        train.inx = sample(which(sample.name %in% train.sample))
+        val.inx = sample(which(sample.name %in% val.sample))
+        
+    }else{
+        rand_inx = sample(nrow(dataset))
+        train.inx = rand_inx[1:ceiling(frac * nrow(dataset))]
+        val.inx = rand_inx[ceiling(frac* nrow(dataset)):nrow(dataset)]
+        
+    }
+    
+    write.table(file=paste0(output.dir, "/dataset_train.txt"),x = dataset[train.inx,],
+                row.names = F, col.names =T,  sep="\t", quote=F )
+    write.table(file=paste0(output.dir, "/dataset_val.txt"),x = dataset[val.inx,],
+                row.names = F, col.names =T,  sep="\t", quote=F )
+    
 }
-
 
 
 cohensD.na.sign = function(x,y, ...) {
@@ -410,93 +423,51 @@ plot.complexheatmap <- function(df, name) {
 
 znorm = function(xx) (xx - mean(xx,na.rm=T))/sd(xx,na.rm=T)
 
-plotSNE.array <- function(data= data_tsne.merge,col = c(2:114), color.cols = "condition",
-                          title="t-SNE",size=0.25,do.discrete=T, filename=NULL, perplexity=30, theta=0.5, pca = FALSE, max_iter=5000, normalize=TRUE, num_threads=32){
-    set.seed(9)
+get.checkpoint.genes = function(){
+    T_Cell_extra = c("IL10", "IDO", "TGFB1", "TGFB2", "TGFBR1", "TGFBR1", "CD37", "TLR", "Arginase")
+    APC_2 = c("A2AR", "VISTA", "B7_h3", "PDL1", "PDL2", "CD80", "CD86", "Galectin_9", "Ox40L", "CD40", "B7RP1", "CD70", "HVEM", "GITRL", "TNFSF9", "CD155", "CD112")
+    T_Cell_1 = c("CTLA4", "TIM3", "OX40", "CD40L", "ICOS", "CD27", "BTLA", "LAG3", "TCR", "KIR", "GITR", "TNFRSF9", "CD226", "TIGIT")
+    checkpoint.genes = unique(c(T_Cell_extra, APC_2, T_Cell_1))
     
-    tsne <- Rtsne(as.matrix(data[,col]), check_duplicates = FALSE, 
-                  pca = pca, perplexity=perplexity, theta=theta, dims=2, max_iter = max_iter, num_threads = num_threads)
-    dt1 = as.data.frame(tsne$Y)
-    ps = list()
-    for (color.col in color.cols) {
-        if(normalize) data[[color.col]] = znorm(data[[color.col]])
-        d_tsne_1=cbind(dt1,col=data[[color.col]], shape=data$shape)
-        title.curr = sprintf("%s_%s", title, color.col)
-        
-        ## plotting the results without clustering
-        p=ggplot(d_tsne_1, aes(x=V1, y=V2)) +
-            geom_point(size=size,aes(color=col, shape=as.factor(shape)), alpha=0.8) +
-            scale_color_gradient2(low = "blue", mid = "white",
-                                  high = "red", space = "Lab" ) + 
-            guides(colour=guide_legend(override.aes=list(size=2))) +
-            xlab("tSNE_1") + ylab("tSNE_2") +
-            ggtitle(label = title.curr) +
-            theme_light(base_size=20) +
-            theme(axis.text.x=element_blank(),
-                  axis.text.y=element_blank()) 
-        if (do.discrete) {
-            p<- p+ scale_colour_brewer(palette = "Set2")
-        }
-        ##theme(legend.position = "none")
-        if(!is.null(filename)) {
-            filename.curr = sprintf("%s_%s.pdf", filename, color.col)
-            
-            ggsave(file=filename.curr, p)
-            ps[[color.col]]  = p
-        }
-    }
-    list(d_tsne_1, ps)
+    load(file="/liulab/asahu/data/ssgsea/xiaoman/getz/all.tcga.genes.RData")
+    setdiff(checkpoint.genes, all.tcga.genes)
+    all.genes = all.tcga.genes
+    checkpoint.genes.1 = intersect(checkpoint.genes, all.genes)
+    
+    #  [1] "IDO"        "TLR"        "Arginase"   "A2AR"       "VISTA"      "B7_h3"      "PDL1"       "PDL2"       "Galectin_9" "Ox40L"      "B7RP1"      "HVEM"       "GITRL"      "CD155"      "CD112"
+    # [16] "TIM3"       "OX40"       "CD40L"      "TCR"        "KIR"        "GITR"
+    checkpoint.genes.rescue = c("IDO1", "IDO2", "ARG1", "ARG2", "ADORA2A", "ADORA1", "VSIR", "CD276", "VTCN1", "JAK2", "STAT3", "CD80", "ICOSLG", "ICOS", "PVR", "CD226", "HAVCR2", "CD4", "PRF1", "FOXP3", "CD28", "LCK", "B2M")
+    pd1.genes = grep("^PDCD1",  all.genes, value=T)
+    Galectin_9.genes = grep("^LGALS",  all.genes, value=T)
+    jak.genes =c("JAK1", "JAK2", "JAK3")
+    stat.genes = grep("^STAT[0-9]",  all.genes, value=T)
+    TNF.genes  =c(grep("^TNFR",  all.genes, value=T), grep("^TNFS",  all.genes, value=T))
+    il2.gene = c("IL2", "PTPN2", grep("^IL2R",  all.genes, value=T))
+    il7.gene = grep("^IL7",  all.genes, value=T)
+    il4.gene = grep("^IL7",  all.genes, value=T)
+    il6.gene = grep("^IL6",  all.genes, value=T)
+    il10.gene = grep("^IL10",  all.genes, value=T)
+    HAVC.gene =grep("HAVC",  all.genes, value=T)
+    gzm.genes  =grep("^GZM",  all.genes, value=T)
+    traf.genes = grep("^TRAF",  all.genes, value=T)
+    nfk.genes = grep("^NFK",  all.genes, value=T)
+    cd40.genes = grep("^CD40",  all.genes, value=T)
+    igh.genes = grep("^IGH",  all.genes, value=T)
+    cd3.genes = grep("^CD3[A-Z]*$",  all.genes, value=T)
+    tra.genes = grep("^TR[A-B][C,D,V]",  all.genes, value=T)
+    kir.genes = grep("^KIR",  all.genes, value=T)
+    tgf.genes =grep("^TGF",  all.genes, value=T)
+    antigen.presentation.genes = grep("^HLA",  all.genes, value=T)
+    traf.genes = grep("^TR[A-B]F",  all.genes, value=T)
+    serpin.genes = grep("^SERPINB[1-9]$",  all.genes, value=T)
+    vegf.genes = grep("^VEGF",  all.genes, value=T)
+    tap.genes = c("TAP1", "TAP2", "TAPBP")
+    
+    checkpoint.genes.semifinal = unique(c(checkpoint.genes.1, checkpoint.genes.rescue, pd1.genes, Galectin_9.genes, stat.genes, TNF.genes, il2.gene, il7.gene, il4.gene, il6.gene, il10.gene, HAVC.gene, gzm.genes, traf.genes, nfk.genes, cd40.genes, igh.genes, cd3.genes,tra.genes, kir.genes, tgf.genes, antigen.presentation.genes, traf.genes,serpin.genes, vegf.genes))
+    checkpoint.genes.final = checkpoint.genes.semifinal
+    setdiff(checkpoint.genes.final, all.genes)
+    checkpoint.genes.final = intersect(checkpoint.genes.final, all.genes)
+    checkpoint.genes.final
 }
 
-
-color.clusters.features <- function(data, cluster,  color.cols = "condition",
-                                    title="t-SNE",size=0.25,do.discrete=T, filename=NULL, normalize=TRUE, shape = 1){
-    require(viridis)
-    require(ggthemes)
-    dt1 = as.data.frame(cluster)
-    colnames(dt1) = c("V1", "V2")
-    ps = list()
-    for (color.col in color.cols) {
-        color.col = gsub(color.col, pattern = "-", replacement = ".")
-        if(normalize) data[[color.col]] = znorm(data[[color.col]])
-        if(is.null(data$shape)) {
-            d_cluster_1=cbind(dt1,col=data[[color.col]], shape=shape)
-        }else{
-            d_cluster_1=cbind(dt1,col=data[[color.col]], shape=data$shape)
-        }
-        title.curr = sprintf("%s_%s", title, color.col)
-        ## plotting the results without clustering
-        p=ggplot(d_cluster_1, aes(x=V1, y=V2)) +
-            geom_point(size=size,aes(color=col, shape=as.factor(shape)), alpha=0.7) +
-            # scale_color_gradient2(low = "blue", mid = "white",
-            # high = "red", space = "Lab" ) +
-            
-            # guides(colour=guide_legend(override.aes=list(size=2))) +
-            xlab("Dim1") + ylab("Dim2") +
-            ggtitle(label = title.curr) +
-            theme_light(base_size=20) +
-            theme(axis.text.x=element_blank(),
-                  axis.text.y=element_blank()) 
-        if (do.discrete) {
-            p<- p+ scale_colour_brewer(palette = "Set2")
-        }else{
-            # p <- p+  scale_color_viridis() 
-            p <- p+ scale_color_gradientn(colours = heat.colors(20, alpha=0.7, rev=T))
-            
-            # p <- p +   
-            #     scale_colour_gradient_tableau(palette="Classic Red") +
-            #     theme_classic() + theme(legend.position = "none") 
-            # 
-        }
-        ##theme(legend.position = "none")
-        if(!is.null(filename)) {
-            filename.curr = sprintf("%s_%s.pdf", filename, gsub(color.col, pattern="-", replacement = "_"))
-            
-            ggsave(file=filename.curr, p)
-        }
-        ps[[color.col]]  = p
-        
-    }
-    ps
-}
-
+get.immune.genes = get.checkpoint.genes
