@@ -232,36 +232,39 @@ match.expression.distribution.combat = function(exp, ref.exp, num.samp.thr=2){
 #' @export
 #'
 #' @examples
-write.dataset = function(output.dir, sample.name, dataset, use.sample=NULL, write.full.dataset=T, frac = 0.85) {
-    dir.create(output.dir)
-    write.table(file=paste0(output.dir, "/samples_name.txt"),x = sample.name,
-                row.names = F, col.names =T,  sep="\t", quote=F )
-    
-    if(write.full.dataset)
-        write.table(file=paste0(output.dir, "/dataset.txt"),x = dataset,
-                    row.names = F, col.names =T,  sep="\t", quote=F )
-    if(any(!is.null(use.sample))){
-        sample.name = use.sample 
-        rand_inx = sample(unique(sample.name))
-        train.sample = rand_inx[1:ceiling(frac * length(rand_inx))]
-        val.sample = rand_inx[ceiling(frac * length(rand_inx)+1):length(rand_inx)]
-        train.inx = sample(which(sample.name %in% train.sample))
-        val.inx = sample(which(sample.name %in% val.sample))
-        
-    }else{
-        rand_inx = sample(nrow(dataset))
-        train.inx = rand_inx[1:ceiling(frac * nrow(dataset))]
-        val.inx = rand_inx[ceiling(frac* nrow(dataset)):nrow(dataset)]
-        
-    }
-    
-    write.table(file=paste0(output.dir, "/dataset_train.txt"),x = dataset[train.inx,],
-                row.names = F, col.names =T,  sep="\t", quote=F )
-    write.table(file=paste0(output.dir, "/dataset_val.txt"),x = dataset[val.inx,],
-                row.names = F, col.names =T,  sep="\t", quote=F )
-    
-}
+write.dataset = function(output.dir, sample.name, dataset, use.sample=NULL, write.full.dataset=T, frac = 0.85, training=TRUE) {
+  dir.create(output.dir)
+  write.table(file=paste0(output.dir, "/samples_name.txt"),x = sample.name,
+	      row.names = F, col.names =T,  sep="\t", quote=F )
 
+  if(write.full.dataset)
+    write.table(file=paste0(output.dir, "/dataset.txt"),x = dataset,
+		row.names = F, col.names =T,  sep="\t", quote=F )
+  if(training){
+
+    if(any(!is.null(use.sample))){
+      sample.name = use.sample 
+      rand_inx = sample(unique(sample.name))
+      train.sample = rand_inx[1:ceiling(frac * length(rand_inx))]
+      val.sample = rand_inx[ceiling(frac * length(rand_inx)+1):length(rand_inx)]
+      train.inx = sample(which(sample.name %in% train.sample))
+      val.inx = sample(which(sample.name %in% val.sample))
+
+    }else{
+      rand_inx = sample(nrow(dataset))
+      train.inx = rand_inx[1:ceiling(frac * nrow(dataset))]
+      val.inx = rand_inx[ceiling(frac* nrow(dataset)):nrow(dataset)]
+
+    }
+
+    write.table(file=paste0(output.dir, "/dataset_train.txt"),x = dataset[train.inx,],
+		row.names = F, col.names =T,  sep="\t", quote=F )
+    write.table(file=paste0(output.dir, "/dataset_val.txt"),x = dataset[val.inx,],
+		row.names = F, col.names =T,  sep="\t", quote=F )
+
+  }
+
+}
 
 cohensD.na.sign = function(x,y, ...) {
     tryCatch(
