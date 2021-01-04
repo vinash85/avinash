@@ -205,3 +205,29 @@ detachAllPackages <- function() {
         }   
     }    
 }
+
+
+get.synonym = function(gene){
+  geneSynonym::humanSyno(gene,  caseSensitive = F) %>% 
+  unlist %>% toupper 
+}
+
+convert.cd2hugo = function(genes, cd2hugo){
+  out.all = list()
+  for (gene in genes) {
+    out  = NULL
+    for (tt in cd2hugo) {
+      if(length(out)== 0){
+        # strsplit(tt,split = ",") %>% 
+        out = grep(pattern=paste("^",gene, "$", sep=""), tt, ignore.case = T)
+      }
+    }
+    hugo.id =cd2hugo$`Approved symbol`[out]
+    hugo.id2 = geneSynonym::humanSyno(gene,  caseSensitive = F) %>% 
+      unlist %>% toupper %>%
+      intersect(cd2hugo$`Approved symbol`)
+    out.all[[gene]] = c(hugo.id, hugo.id2) %>% unique
+  }
+  out.all
+  
+}
